@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Milk Collection History</h2>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <select name="producer" class="form-select">
+            <option value="">All Producers</option>
+            {% for producer in producers %}
+            <option value="{{ producer.id }}" {% if selected_producer == producer.id|stringformat:'s' %}selected{% endif %}>{{ producer }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="milk_type" class="form-select">
+            <option value="">All Types</option>
+            <option value="buffalo" {% if milk_type == 'buffalo' %}selected{% endif %}>Buffalo</option>
+            <option value="cow" {% if milk_type == 'cow' %}selected{% endif %}>Cow</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="start_date" class="form-control" value="{{ start_date }}" placeholder="Start Date">
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="end_date" class="form-control" value="{{ end_date }}" placeholder="End Date">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Producer</th>
+            <th>Milk Type</th>
+            <th>Morning Litres</th>
+            <th>Evening Litres</th>
+            <th>Fat</th>
+            <th>SNF</th>
+            <th>Rate</th>
+            <th>Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in collections %}
+        <tr>
+            <td>{{ c.date }}</td>
+            <td>{{ c.producer }}</td>
+            <td>{{ c.get_milk_type_display }}</td>
+            <td>{{ c.morning_litres }}</td>
+            <td>{{ c.evening_litres }}</td>
+            <td>{{ c.fat_value }}</td>
+            <td>{{ c.snf }}</td>
+            <td>₹{{ c.rate }}</td>
+            <td>₹{{ c.total_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">No records found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
