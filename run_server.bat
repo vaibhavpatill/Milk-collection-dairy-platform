@@ -10,11 +10,6 @@ echo Creating superuser...
 python create_superuser.py
 
 echo.
-echo Adding sample data if needed...
-python add_sample_data.py
-python add_deductions.py
-
-echo.
 echo 🚀 Starting development server...
 echo 📱 Access your PWA at: http://127.0.0.1:8000
 echo 🛑 Press Ctrl+C to stop the server

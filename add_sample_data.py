@@ -12,13 +12,21 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dairy_pwa.settings')
 django.setup()
 
 from core.models import MilkProducer, MilkCollection, MilkRate
+from django.contrib.auth.models import User
 
 def add_sample_data():
-    print("Adding sample data...")
+    print("Adding sample data for user 'suraj'...")
     
-    # Check if data already exists
-    if MilkProducer.objects.exists():
-        print("Sample data already exists!")
+    # Get the suraj user
+    try:
+        user = User.objects.get(username='suraj')
+    except User.DoesNotExist:
+        print("User 'suraj' not found. Please create superuser first.")
+        return
+    
+    # Check if data already exists for this user
+    if MilkProducer.objects.filter(user=user).exists():
+        print("Sample data already exists for user 'suraj'!")
         return
     
     # Sample producer names
@@ -32,6 +40,7 @@ def add_sample_data():
     producers = []
     for i, name in enumerate(producer_names, 1):
         producer = MilkProducer.objects.create(
+            user=user,
             full_name=name,
             producer_id=f"PROD{i:03d}"
         )
@@ -46,6 +55,7 @@ def add_sample_data():
     
     for milk_type, fat_value, rate in rates_data:
         MilkRate.objects.get_or_create(
+            user=user,
             milk_type=milk_type,
             fat_value=fat_value,
             defaults={'rate': rate}

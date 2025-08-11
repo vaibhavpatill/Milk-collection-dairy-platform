@@ -12,16 +12,25 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dairy_pwa.settings')
 django.setup()
 
 from core.models import MilkProducer, ProducerDeduction
+from django.contrib.auth.models import User
 
 def add_deductions():
-    print("Adding sample deductions...")
+    print("Adding sample deductions for user 'suraj'...")
     
-    # Check if deductions already exist
-    if ProducerDeduction.objects.exists():
-        print("Sample deductions already exist!")
+    # Get the suraj user
+    try:
+        user = User.objects.get(username='suraj')
+    except User.DoesNotExist:
+        print("User 'suraj' not found.")
         return
     
-    producers = MilkProducer.objects.all()
+    # Check if deductions already exist for this user's producers
+    user_producers = MilkProducer.objects.filter(user=user)
+    if ProducerDeduction.objects.filter(producer__in=user_producers).exists():
+        print("Sample deductions already exist for user 'suraj'!")
+        return
+    
+    producers = MilkProducer.objects.filter(user=user)
     
     advance_notes = [
         "Emergency medical expenses", "Festival advance", "Children school fees",
