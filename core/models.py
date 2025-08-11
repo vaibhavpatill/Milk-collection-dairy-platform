@@ -57,6 +57,8 @@ class ProducerDeduction(models.Model):
     advance_notes = models.TextField(blank=True, default='')
     feed_money = models.FloatField(default=0)
     feed_notes = models.TextField(blank=True, default='')
+    payment_adjustment = models.FloatField(default=0)  # Amount to carry forward to next bill
+    adjustment_notes = models.TextField(blank=True, default='')
     
     def __str__(self):
         return f"{self.producer.full_name} - {self.date}"

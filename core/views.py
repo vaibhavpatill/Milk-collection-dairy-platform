@@ -421,17 +421,19 @@ def collect_milk(request):
                 has_next = False
                 current_period = 1
             
-            # Get total deductions
+            # Get total deductions and payment adjustments
             deductions = ProducerDeduction.objects.filter(producer=selected_producer)
             total_advance = sum(d.advance_money for d in deductions)
             total_feed = sum(d.feed_money for d in deductions)
-            net_payable = billing_total - total_advance - total_feed
+            total_carry_forward = sum(d.payment_adjustment for d in deductions)  # Amount carried from previous bills
+            net_payable = billing_total - total_advance - total_feed + total_carry_forward
             
         except MilkProducer.DoesNotExist:
             ten_days_summary = []
             billing_total = 0
             total_advance = 0
             total_feed = 0
+            total_carry_forward = 0
             net_payable = 0
             has_previous = False
             has_next = False
@@ -441,6 +443,7 @@ def collect_milk(request):
         billing_total = 0
         total_advance = 0
         total_feed = 0
+        total_carry_forward = 0
         net_payable = 0
         has_previous = False
         has_next = False
@@ -456,6 +459,7 @@ def collect_milk(request):
         'billing_total': billing_total if 'billing_total' in locals() else 0,
         'total_advance': total_advance if 'total_advance' in locals() else 0,
         'total_feed': total_feed if 'total_feed' in locals() else 0,
+        'total_carry_forward': total_carry_forward if 'total_carry_forward' in locals() else 0,
         'net_payable': net_payable if 'net_payable' in locals() else 0,
         'has_previous': has_previous if 'has_previous' in locals() else False,
         'has_next': has_next if 'has_next' in locals() else False,
@@ -635,6 +639,13 @@ def save_deductions(request, producer_id):
         advance_notes = request.POST.get('advance_notes', '')
         feed_money = float(request.POST.get('feed_money') or 0)
         feed_notes = request.POST.get('feed_notes', '')
+        payment_option = request.POST.get('payment_option', 'full')
+        adjustment_notes = request.POST.get('adjustment_notes', '')
+        
+        # Calculate payment adjustment based on option selected
+        payment_adjustment = 0
+        if payment_option == 'partial':
+            payment_adjustment = float(request.POST.get('payment_adjustment') or 0)
         
         producer = MilkProducer.objects.get(id=producer_id, user=request.user)
         ProducerDeduction.objects.create(
@@ -643,9 +654,15 @@ def save_deductions(request, producer_id):
             advance_money=advance_money,
             advance_notes=advance_notes,
             feed_money=feed_money,
-            feed_notes=feed_notes
+            feed_notes=feed_notes,
+            payment_adjustment=payment_adjustment,
+            adjustment_notes=adjustment_notes
         )
-        messages.success(request, 'Deductions saved successfully!')
+        
+        if payment_adjustment > 0:
+            messages.success(request, f'Deductions saved! ₹{payment_adjustment:.2f} will be carried forward to next bill.')
+        else:
+            messages.success(request, 'Deductions saved successfully!')
     
     return redirect(f'/milk/collect/?producer={producer_id}')
 
