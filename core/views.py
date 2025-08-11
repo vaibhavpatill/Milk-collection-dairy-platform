@@ -329,8 +329,122 @@ def collect_milk(request):
         try:
             selected_producer = MilkProducer.objects.get(id=selected_producer_id)
             collections = MilkCollection.objects.filter(producer=selected_producer).order_by('-date')[:10]
+            
+            # Generate rolling 10-day billing summary
+            from datetime import date, timedelta
+            
+            # Get the period parameter (default to current period)
+            period_offset = int(request.GET.get('period', 0))
+            
+            # Find the latest collection date for this producer
+            latest_collection = MilkCollection.objects.filter(
+                producer=selected_producer
+            ).order_by('-date').first()
+            
+            if latest_collection:
+                # Calculate which 10-day period we're in
+                latest_date = latest_collection.date
+                days_since_latest = (date.today() - latest_date).days
+                
+                # Determine the current period start date
+                current_period_start = latest_date - timedelta(days=(latest_date.day - 1) % 10)
+                
+                # Adjust for the requested period offset
+                period_start = current_period_start - timedelta(days=period_offset * 10)
+                period_end = period_start + timedelta(days=9)
+                
+                ten_days_summary = []
+                billing_total = 0
+                
+                for i in range(10):
+                    check_date = period_start + timedelta(days=i)
+                    collection = MilkCollection.objects.filter(
+                        producer=selected_producer, 
+                        date=check_date
+                    ).first()
+                    
+                    if collection:
+                        day_amount = collection.total_amount
+                        ten_days_summary.append({
+                            'date': check_date,
+                            'has_collection': True,
+                            'morning_litres': collection.morning_litres,
+                            'evening_litres': collection.evening_litres,
+                            'total_litres': collection.morning_litres + collection.evening_litres,
+                            'fat_value': collection.fat_value,
+                            'rate': collection.rate,
+                            'amount': day_amount
+                        })
+                    else:
+                        ten_days_summary.append({
+                            'date': check_date,
+                            'has_collection': False,
+                            'morning_litres': 0,
+                            'evening_litres': 0,
+                            'total_litres': 0,
+                            'fat_value': 0,
+                            'rate': 0,
+                            'amount': 0
+                        })
+                    
+                    billing_total += ten_days_summary[-1]['amount']
+                
+                # Check if there are previous/next periods
+                has_previous = MilkCollection.objects.filter(
+                    producer=selected_producer,
+                    date__lt=period_start
+                ).exists()
+                
+                has_next = period_offset > 0
+                
+                current_period = period_offset + 1
+            else:
+                # No collections yet, show current 10 days
+                today = date.today()
+                ten_days_summary = []
+                billing_total = 0
+                
+                for i in range(10):
+                    check_date = today - timedelta(days=9-i)
+                    ten_days_summary.append({
+                        'date': check_date,
+                        'has_collection': False,
+                        'morning_litres': 0,
+                        'evening_litres': 0,
+                        'total_litres': 0,
+                        'fat_value': 0,
+                        'rate': 0,
+                        'amount': 0
+                    })
+                
+                has_previous = False
+                has_next = False
+                current_period = 1
+            
+            # Get total deductions
+            deductions = ProducerDeduction.objects.filter(producer=selected_producer)
+            total_advance = sum(d.advance_money for d in deductions)
+            total_feed = sum(d.feed_money for d in deductions)
+            net_payable = billing_total - total_advance - total_feed
+            
         except MilkProducer.DoesNotExist:
-            pass
+            ten_days_summary = []
+            billing_total = 0
+            total_advance = 0
+            total_feed = 0
+            net_payable = 0
+            has_previous = False
+            has_next = False
+            current_period = 1
+    else:
+        ten_days_summary = []
+        billing_total = 0
+        total_advance = 0
+        total_feed = 0
+        net_payable = 0
+        has_previous = False
+        has_next = False
+        current_period = 1
     
     return render(request, 'core/collect_milk.html', {
         'form': form,
@@ -338,6 +452,14 @@ def collect_milk(request):
         'total_amount': total_amount,
         'selected_producer': selected_producer,
         'collections': collections,
+        'ten_days_summary': ten_days_summary if 'ten_days_summary' in locals() else [],
+        'billing_total': billing_total if 'billing_total' in locals() else 0,
+        'total_advance': total_advance if 'total_advance' in locals() else 0,
+        'total_feed': total_feed if 'total_feed' in locals() else 0,
+        'net_payable': net_payable if 'net_payable' in locals() else 0,
+        'has_previous': has_previous if 'has_previous' in locals() else False,
+        'has_next': has_next if 'has_next' in locals() else False,
+        'current_period': current_period if 'current_period' in locals() else 1,
     })
 # Milk Producer Registration Form
 class MilkProducerForm(forms.ModelForm):

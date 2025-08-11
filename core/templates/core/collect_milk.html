@@ -183,81 +183,123 @@ function updateRate() {
         <strong>Total Amount:</strong> ₹{{ total_amount }}
     </div>
 {% endif %}
-{% if selected_producer and collections %}
-<h3 class="mt-5 mb-3 text-center">Last 10 Days History - {{ selected_producer.full_name }}</h3>
+{% if selected_producer and ten_days_summary %}
+<div class="d-flex justify-content-between align-items-center mt-5 mb-3">
+  <h3 class="mb-0">10-Day Billing Period {{ current_period }} - {{ selected_producer.full_name }}</h3>
+  <div class="btn-group">
+    {% if has_previous %}
+      <a href="?producer={{ selected_producer.id }}&period={{ current_period }}" class="btn btn-outline-primary btn-sm">← Previous 10 Days</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?producer={{ selected_producer.id }}&period={{ current_period|add:'-2' }}" class="btn btn-outline-primary btn-sm">Next 10 Days →</a>
+    {% endif %}
+    {% if current_period > 1 %}
+      <a href="?producer={{ selected_producer.id }}&period=0" class="btn btn-primary btn-sm">Current Period</a>
+    {% endif %}
+  </div>
+</div>
 <div class="table-responsive">
   <table class="table table-bordered table-striped">
     <thead style="background:#e0f2f1;">
       <tr>
         <th>Date</th>
-        <th>Milk Type</th>
-        <th>Morning Litres</th>
-        <th>Evening Litres</th>
-        <th>Fat</th>
-        <th>SNF</th>
+        <th>Status</th>
+        <th>Morning L</th>
+        <th>Evening L</th>
+        <th>Total L</th>
+        <th>Fat %</th>
         <th>Rate</th>
-        <th>Total Amount</th>
-        <th>Actions</th>
+        <th>Amount</th>
       </tr>
     </thead>
     <tbody>
-      {% for c in collections %}
-      <tr>
-        <td>{{ c.date }}</td>
-        <td>{{ c.get_milk_type_display }}</td>
-        <td>{{ c.morning_litres }}</td>
-        <td>{{ c.evening_litres }}</td>
-        <td>{{ c.fat_value }}</td>
-        <td>{{ c.snf }}</td>
-        <td>₹{{ c.rate }}</td>
-        <td>₹{{ c.total_amount }}</td>
+      {% for day in ten_days_summary %}
+      <tr {% if not day.has_collection %}style="background-color: #ffebee;"{% endif %}>
+        <td>{{ day.date }}</td>
         <td>
-          <a href="/milk/edit/{{ c.id }}/?producer={{ selected_producer.id }}" class="btn btn-sm btn-warning">✏️</a>
-          <a href="/milk/delete/{{ c.id }}/?producer={{ selected_producer.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')">🗑️</a>
+          {% if day.has_collection %}
+            <span class="badge bg-success">✓ Collected</span>
+          {% else %}
+            <span class="badge bg-danger">✗ No Collection</span>
+          {% endif %}
         </td>
+        <td>{{ day.morning_litres|floatformat:2 }}</td>
+        <td>{{ day.evening_litres|floatformat:2 }}</td>
+        <td>{{ day.total_litres|floatformat:2 }}</td>
+        <td>{{ day.fat_value|floatformat:1 }}</td>
+        <td>₹{{ day.rate|floatformat:0 }}</td>
+        <td>₹{{ day.amount|floatformat:2 }}</td>
       </tr>
-      {% empty %}
-      <tr><td colspan="9">No records found</td></tr>
       {% endfor %}
     </tbody>
+    <tfoot style="background:#e8f5e8; font-weight:bold;">
+      <tr>
+        <td colspan="7">Period {{ current_period }} Total</td>
+        <td>₹{{ billing_total|floatformat:2 }}</td>
+      </tr>
+      {% if current_period == 1 %}
+      <tr style="background:#fff3e0;">
+        <td colspan="7">Less: Total Advance Money</td>
+        <td>-₹{{ total_advance|floatformat:2 }}</td>
+      </tr>
+      <tr style="background:#fff3e0;">
+        <td colspan="7">Less: Total Feed Money</td>
+        <td>-₹{{ total_feed|floatformat:2 }}</td>
+      </tr>
+      <tr style="background:#c8e6c9; font-size:1.1rem;">
+        <td colspan="7"><strong>Net Payable Amount</strong></td>
+        <td><strong>₹{{ net_payable|floatformat:2 }}</strong></td>
+      </tr>
+      {% else %}
+      <tr style="background:#e3f2fd;">
+        <td colspan="8"><em>Note: Deductions are only shown for the current billing period</em></td>
+      </tr>
+      {% endif %}
+    </tfoot>
   </table>
 </div>
 
+<!-- Quick Deduction from Bill - Only show for current period -->
+{% if current_period == 1 %}
 <div class="mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Deductions for {{ selected_producer.full_name }}</h4>
-    <a href="/manage/deductions/?producer={{ selected_producer.id }}" class="btn btn-info btn-sm">📊 View All Deductions</a>
-  </div>
-  <form method="post" action="/milk/deductions/{{ selected_producer.id }}/" class="card p-3">
-    {% csrf_token %}
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">📅 Transaction Date</label>
-        <input type="date" name="transaction_date" class="form-control" required>
-      </div>
-      <div class="col-md-6"></div>
-      <div class="col-md-6">
-        <label class="form-label">💰 Advance Money (₹)</label>
-        <input type="number" step="0.01" name="advance_money" class="form-control" placeholder="0.00">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">📝 Advance Notes</label>
-        <textarea name="advance_notes" class="form-control" rows="2" placeholder="Notes for advance"></textarea>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">🌾 Feed Money (₹)</label>
-        <input type="number" step="0.01" name="feed_money" class="form-control" placeholder="0.00">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">📝 Feed Notes</label>
-        <textarea name="feed_notes" class="form-control" rows="2" placeholder="Notes for feed"></textarea>
-      </div>
-      <div class="col-12">
-        <button type="submit" class="btn btn-primary">💾 Save Deductions</button>
-      </div>
+  <div class="card">
+    <div class="card-header bg-warning text-dark">
+      <h5 class="mb-0">💰 Quick Deduction from Current Bill - {{ selected_producer.full_name }}</h5>
     </div>
-  </form>
+    <div class="card-body">
+      <form method="post" action="/milk/deductions/{{ selected_producer.id }}/">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">📅 Date</label>
+            <input type="date" name="transaction_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">💰 Advance Amount (₹)</label>
+            <input type="number" step="0.01" name="advance_money" class="form-control" placeholder="0.00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">🌾 Feed Amount (₹)</label>
+            <input type="number" step="0.01" name="feed_money" class="form-control" placeholder="0.00">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">📝 Advance Notes</label>
+            <input type="text" name="advance_notes" class="form-control" placeholder="Purpose of advance">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">📝 Feed Notes</label>
+            <input type="text" name="feed_notes" class="form-control" placeholder="Feed details">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-warning btn-lg">💾 Deduct from Bill</button>
+            <a href="/manage/deductions/?producer={{ selected_producer.id }}" class="btn btn-info btn-sm ms-2">📊 View All Deductions</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+{% endif %}
 {% endif %}
 
 <!-- Modal for New Producer Registration -->
