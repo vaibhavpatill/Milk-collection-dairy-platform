@@ -319,6 +319,7 @@ def collect_milk(request):
             return redirect(f'/milk/collect/?producer={producer_id}')
     
     form = MilkCollectionForm()
+    form.fields['producer'].queryset = MilkProducer.objects.filter(user=request.user)
     # Get selected producer from GET parameter
     selected_producer_id = request.GET.get('producer')
     selected_producer = None
@@ -357,7 +358,16 @@ def register_producer(request):
             producer.user = request.user
             producer.save()
             messages.success(request, 'Producer registered successfully!')
+            
+            # Handle AJAX requests
+            if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+                return JsonResponse({'success': True, 'message': 'Producer registered successfully!'})
+            
             return redirect('producer_list')
+        else:
+            # Handle AJAX form errors
+            if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+                return JsonResponse({'success': False, 'errors': form.errors})
     else:
         form = MilkProducerForm()
     return render(request, 'core/register_producer.html', {'form': form})
