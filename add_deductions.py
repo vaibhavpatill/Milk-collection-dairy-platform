@@ -16,6 +16,11 @@ from core.models import MilkProducer, ProducerDeduction
 def add_deductions():
     print("Adding sample deductions...")
     
+    # Check if deductions already exist
+    if ProducerDeduction.objects.exists():
+        print("Sample deductions already exist!")
+        return
+    
     producers = MilkProducer.objects.all()
     
     advance_notes = [

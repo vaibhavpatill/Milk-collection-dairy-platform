@@ -16,6 +16,11 @@ from core.models import MilkProducer, MilkCollection, MilkRate
 def add_sample_data():
     print("Adding sample data...")
     
+    # Check if data already exists
+    if MilkProducer.objects.exists():
+        print("Sample data already exists!")
+        return
+    
     # Sample producer names
     producer_names = [
         "Ramesh Kumar", "Suresh Patil", "Mahesh Singh", "Ganesh Sharma", 
@@ -40,10 +45,10 @@ def add_sample_data():
     ]
     
     for milk_type, fat_value, rate in rates_data:
-        MilkRate.objects.create(
+        MilkRate.objects.get_or_create(
             milk_type=milk_type,
             fat_value=fat_value,
-            rate=rate
+            defaults={'rate': rate}
         )
     print("Created milk rates")
     
@@ -62,9 +67,9 @@ def add_sample_data():
                 
                 # Get rate
                 try:
-                    rate_obj = MilkRate.objects.get(milk_type=milk_type, fat_value=fat_value)
-                    rate = rate_obj.rate
-                except MilkRate.DoesNotExist:
+                    rate_obj = MilkRate.objects.filter(milk_type=milk_type, fat_value=fat_value).first()
+                    rate = rate_obj.rate if rate_obj else 30
+                except:
                     rate = 30
                 
                 total_amount = (morning_litres + evening_litres) * rate
