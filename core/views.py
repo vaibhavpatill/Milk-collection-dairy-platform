@@ -14,12 +14,12 @@ from datetime import datetime
 # Reports / Dashboard
 @login_required
 def collection_history(request):
-    producers = MilkProducer.objects.all()
+    producers = MilkProducer.objects.filter(user=request.user)
     selected_producer = request.GET.get('producer')
     milk_type = request.GET.get('milk_type')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
-    collections = MilkCollection.objects.all()
+    collections = MilkCollection.objects.filter(producer__user=request.user)
     if selected_producer:
         collections = collections.filter(producer__id=selected_producer)
     if milk_type:
@@ -47,7 +47,7 @@ def export_collection_csv(request):
     end_date = request.GET.get('end_date')
     
     # Filter collections
-    collections = MilkCollection.objects.all()
+    collections = MilkCollection.objects.filter(producer__user=request.user)
     if selected_producer:
         collections = collections.filter(producer__id=selected_producer)
     if milk_type:
@@ -96,18 +96,20 @@ def manage_rates(request):
     if request.method == 'POST':
         form = MilkRateForm(request.POST)
         if form.is_valid():
-            form.save()
+            rate = form.save(commit=False)
+            rate.user = request.user
+            rate.save()
             messages.success(request, 'Rate updated!')
             return redirect('manage_rates')
     else:
         form = MilkRateForm()
-    rates = MilkRate.objects.all().order_by('milk_type', 'fat_value')
+    rates = MilkRate.objects.filter(user=request.user).order_by('milk_type', 'fat_value')
     return render(request, 'core/manage_rates.html', {'form': form, 'rates': rates})
 
 # Billing (10-day summary)
 @login_required
 def billing_summary(request):
-    producers = MilkProducer.objects.all()
+    producers = MilkProducer.objects.filter(user=request.user)
     summary = []
     
     # Get date range parameters
@@ -163,7 +165,7 @@ def export_billing_csv(request):
     end_date = request.GET.get('end_date')
     
     # Prepare billing data
-    producers = MilkProducer.objects.all()
+    producers = MilkProducer.objects.filter(user=request.user)
     summary = []
     
     for producer in producers:
@@ -262,7 +264,7 @@ def collect_milk(request):
         
         # Get rate
         try:
-            rate_obj = MilkRate.objects.get(milk_type=milk_type, fat_value=fat_value)
+            rate_obj = MilkRate.objects.get(user=request.user, milk_type=milk_type, fat_value=fat_value)
             rate = rate_obj.rate
         except MilkRate.DoesNotExist:
             rate = 30  # Default rate
@@ -351,7 +353,9 @@ def register_producer(request):
     if request.method == 'POST':
         form = MilkProducerForm(request.POST)
         if form.is_valid():
-            form.save()
+            producer = form.save(commit=False)
+            producer.user = request.user
+            producer.save()
             messages.success(request, 'Producer registered successfully!')
             return redirect('producer_list')
     else:
@@ -360,7 +364,7 @@ def register_producer(request):
 
 @login_required
 def edit_producer(request, producer_id):
-    producer = MilkProducer.objects.get(id=producer_id)
+    producer = MilkProducer.objects.get(id=producer_id, user=request.user)
     if request.method == 'POST':
         form = MilkProducerForm(request.POST, instance=producer)
         if form.is_valid():
@@ -373,7 +377,7 @@ def edit_producer(request, producer_id):
 
 @login_required
 def delete_producer(request, producer_id):
-    producer = MilkProducer.objects.get(id=producer_id)
+    producer = MilkProducer.objects.get(id=producer_id, user=request.user)
     # Check if producer has any collections
     if MilkCollection.objects.filter(producer=producer).exists():
         messages.error(request, 'Cannot delete producer with existing milk collections.')
@@ -412,14 +416,16 @@ def user_logout(request):
 
 @login_required
 def home(request):
-    total_producers = MilkProducer.objects.count()
-    total_milk = (MilkCollection.objects.aggregate(Sum('morning_litres'))['morning_litres__sum'] or 0) + (MilkCollection.objects.aggregate(Sum('evening_litres'))['evening_litres__sum'] or 0)
-    avg_fat = MilkCollection.objects.aggregate(Avg('fat_value'))['fat_value__avg'] or 0
-    gross_amount = MilkCollection.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    user_collections = MilkCollection.objects.filter(producer__user=request.user)
+    total_producers = MilkProducer.objects.filter(user=request.user).count()
+    total_milk = (user_collections.aggregate(Sum('morning_litres'))['morning_litres__sum'] or 0) + (user_collections.aggregate(Sum('evening_litres'))['evening_litres__sum'] or 0)
+    avg_fat = user_collections.aggregate(Avg('fat_value'))['fat_value__avg'] or 0
+    gross_amount = user_collections.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     
     # Deductions summary
-    total_advance = ProducerDeduction.objects.aggregate(Sum('advance_money'))['advance_money__sum'] or 0
-    total_feed = ProducerDeduction.objects.aggregate(Sum('feed_money'))['feed_money__sum'] or 0
+    user_deductions = ProducerDeduction.objects.filter(producer__user=request.user)
+    total_advance = user_deductions.aggregate(Sum('advance_money'))['advance_money__sum'] or 0
+    total_feed = user_deductions.aggregate(Sum('feed_money'))['feed_money__sum'] or 0
     
     return render(request, "core/home.html", {
         'total_producers': total_producers,
@@ -438,7 +444,7 @@ def get_rate(request):
         fat_value = data.get('fat_value')
         
         try:
-            rate_obj = MilkRate.objects.get(milk_type=milk_type, fat_value=fat_value)
+            rate_obj = MilkRate.objects.get(user=request.user, milk_type=milk_type, fat_value=fat_value)
             rate = rate_obj.rate
         except MilkRate.DoesNotExist:
             rate = 30  # Default rate
@@ -448,7 +454,7 @@ def get_rate(request):
 
 @login_required
 def producer_list(request):
-    producers = MilkProducer.objects.all().order_by('full_name')
+    producers = MilkProducer.objects.filter(user=request.user).order_by('full_name')
     
     # Add collection count for each producer
     for producer in producers:
@@ -460,7 +466,7 @@ def producer_list(request):
 
 @login_required
 def edit_collection(request, collection_id):
-    collection = MilkCollection.objects.get(id=collection_id)
+    collection = MilkCollection.objects.get(id=collection_id, producer__user=request.user)
     producer_id = request.GET.get('producer')
     
     if request.method == 'POST':
@@ -483,7 +489,7 @@ def edit_collection(request, collection_id):
 
 @login_required
 def delete_collection(request, collection_id):
-    collection = MilkCollection.objects.get(id=collection_id)
+    collection = MilkCollection.objects.get(id=collection_id, producer__user=request.user)
     producer_id = request.GET.get('producer')
     collection.delete()
     messages.success(request, 'Collection deleted successfully!')
@@ -498,7 +504,7 @@ def save_deductions(request, producer_id):
         feed_money = float(request.POST.get('feed_money') or 0)
         feed_notes = request.POST.get('feed_notes', '')
         
-        producer = MilkProducer.objects.get(id=producer_id)
+        producer = MilkProducer.objects.get(id=producer_id, user=request.user)
         ProducerDeduction.objects.create(
             producer=producer,
             transaction_date=transaction_date,
@@ -513,7 +519,7 @@ def save_deductions(request, producer_id):
 
 @login_required
 def manage_deductions(request):
-    producers = MilkProducer.objects.all()
+    producers = MilkProducer.objects.filter(user=request.user)
     deductions_data = []
     
     for producer in producers:
@@ -535,7 +541,7 @@ def manage_deductions(request):
 
 @login_required
 def edit_deduction(request, deduction_id):
-    deduction = ProducerDeduction.objects.get(id=deduction_id)
+    deduction = ProducerDeduction.objects.get(id=deduction_id, producer__user=request.user)
     
     if request.method == 'POST':
         deduction.transaction_date = request.POST.get('transaction_date') or deduction.date
@@ -553,7 +559,7 @@ def edit_deduction(request, deduction_id):
 
 @login_required
 def delete_deduction(request, deduction_id):
-    deduction = ProducerDeduction.objects.get(id=deduction_id)
+    deduction = ProducerDeduction.objects.get(id=deduction_id, producer__user=request.user)
     deduction.delete()
     messages.success(request, 'Deduction deleted successfully!')
     return redirect('/manage/deductions/')

@@ -1,11 +1,13 @@
 
 from django.db import models
+from django.contrib.auth.models import User
 
 # Milk Producer Model
 class MilkProducer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=100)
     registration_date = models.DateField(auto_now_add=True)
-    producer_id = models.CharField(max_length=20, unique=True)
+    producer_id = models.CharField(max_length=20)
 
     def __str__(self):
         return f"{self.full_name} ({self.producer_id})"
@@ -35,12 +37,13 @@ class MilkRate(models.Model):
         ("buffalo", "Buffalo"),
         ("cow", "Cow"),
     ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     milk_type = models.CharField(max_length=10, choices=MILK_TYPE_CHOICES)
     fat_value = models.FloatField()
     rate = models.FloatField()
 
     class Meta:
-        unique_together = ("milk_type", "fat_value")
+        unique_together = ("user", "milk_type", "fat_value")
 
     def __str__(self):
         return f"{self.milk_type} Fat {self.fat_value}: ₹{self.rate}/ltr"
