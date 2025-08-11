@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Milk Rate Management</h2>
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Add/Update Rate</button>
+</form>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Milk Type</th>
+            <th>Fat Value</th>
+            <th>Rate (₹/ltr)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rate in rates %}
+        <tr>
+            <td>{{ rate.get_milk_type_display }}</td>
+            <td>{{ rate.fat_value }}</td>
+            <td>{{ rate.rate }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">No rates found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

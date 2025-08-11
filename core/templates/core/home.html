@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .dashboard-bg {
+    background: linear-gradient(135deg, #e0f7fa 0%, #fffde4 100%);
+    min-height: 100vh;
+    padding-top: 30px;
+  }
+  .dashboard-card {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    transition: transform 0.2s;
+  }
+  .dashboard-card:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .dashboard-icon {
+    font-size: 2.5rem;
+    color: #007bff;
+    margin-bottom: 10px;
+  }
+  .stat-value {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #00796b;
+  }
+</style>
+<div class="dashboard-bg">
+  <div class="container">
+    <h2 class="mb-4 text-center">🐄 Milk Collection Dairy Dashboard</h2>
+    <div class="row mb-4 g-4">
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <div class="dashboard-icon">👤</div>
+          <h5 class="card-title">Register Producer</h5>
+          <a href="/producer/register/" class="btn btn-success w-100">Add Producer</a>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <div class="dashboard-icon">🥛</div>
+          <h5 class="card-title">Milk Collection</h5>
+          <a href="/milk/collect/" class="btn btn-primary w-100">Collect Milk</a>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <div class="dashboard-icon">📈</div>
+          <h5 class="card-title">Manage Rates</h5>
+          <a href="/rates/manage/" class="btn btn-warning w-100">Milk Rates</a>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <div class="dashboard-icon">💰</div>
+          <h5 class="card-title">Manage Deductions</h5>
+          <a href="/manage/deductions/" class="btn btn-warning w-100">Advance & Feed Money</a>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-4 g-4">
+      <div class="col-md-12">
+        <div class="card dashboard-card text-center p-3">
+          <div class="dashboard-icon">📊</div>
+          <h5 class="card-title">Reports & Billing</h5>
+          <div class="d-flex gap-2 justify-content-center">
+            <a href="/reports/history/" class="btn btn-info">Collection History</a>
+            <a href="/billing/summary/" class="btn btn-secondary">Billing Summary</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mt-4 g-4">
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3" style="cursor: pointer;" onclick="window.location.href='/producers/list/'">
+          <h6>Total Producers</h6>
+          <div class="stat-value">{{ total_producers }}</div>
+          <small class="text-muted">Click to view all</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <h6>Total Milk Collected (L)</h6>
+          <div class="stat-value">{{ total_milk }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <h6>Average Fat</h6>
+          <div class="stat-value">{{ avg_fat|floatformat:2 }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card dashboard-card text-center p-3">
+          <h6>Gross Amount (₹)</h6>
+          <div class="stat-value">{{ gross_amount }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="row mt-4 g-4">
+      <div class="col-md-4">
+        <div class="card dashboard-card text-center p-3">
+          <h6>💰 Total Advance Money</h6>
+          <div class="stat-value">₹{{ total_advance }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card dashboard-card text-center p-3">
+          <h6>🌾 Total Feed Money</h6>
+          <div class="stat-value">₹{{ total_feed }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card dashboard-card text-center p-3">
+          <h6>📊 Net Payable</h6>
+          <div class="stat-value">₹{{ gross_amount|add:total_advance|add:total_feed|floatformat:0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

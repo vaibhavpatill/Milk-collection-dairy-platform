@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>10-Day Billing Summary</h2>
+    <a href="#" onclick="exportData()" class="btn btn-success"><i class="bi bi-download"></i> Export to CSV</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">End Date</label>
+        <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+</form>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Producer</th>
+            <th>Total Litres</th>
+            <th>Average Fat</th>
+            <th>Gross Amount</th>
+            <th>Advance</th>
+            <th>Feed</th>
+            <th>Net Payable</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in summary %}
+        <tr>
+            <td>{{ item.producer }}</td>
+            <td>{{ item.total_litres }}</td>
+            <td>{{ item.avg_fat|floatformat:2 }}</td>
+            <td>₹{{ item.gross_amount }}</td>
+            <td>₹{{ item.advance }}</td>
+            <td>₹{{ item.feed }}</td>
+            <td>₹{{ item.net_payable }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No records found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script>
+function exportData() {
+    // Get current filter parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const startDate = urlParams.get('start_date') || '';
+    const endDate = urlParams.get('end_date') || '';
+    
+    // Build export URL with filters
+    let exportUrl = '/export/billing/csv/?';
+    if (startDate) exportUrl += `start_date=${startDate}&`;
+    if (endDate) exportUrl += `end_date=${endDate}&`;
+    
+    // Redirect to export URL
+    window.location.href = exportUrl;
+}
+
+function clearFilters() {
+    window.location.href = '/billing/summary/';
+}
+</script>
+{% endblock %}

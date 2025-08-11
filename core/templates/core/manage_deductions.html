@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">💰 Manage Advance & Feed Money</h2>
+    
+    {% for data in deductions_data %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>{{ data.producer.full_name }} ({{ data.producer.producer_id }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="alert alert-warning">
+                        <strong>💰 Total Advance:</strong> ₹{{ data.total_advance }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <strong>🌾 Total Feed Money:</strong> ₹{{ data.total_feed }}
+                    </div>
+                </div>
+            </div>
+            
+            <h6>Recent Records:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Advance</th>
+                            <th>Advance Notes</th>
+                            <th>Feed Money</th>
+                            <th>Feed Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in data.records %}
+                        <tr>
+                            <td>{{ record.date }}</td>
+                            <td>₹{{ record.advance_money }}</td>
+                            <td>{{ record.advance_notes|default:"-" }}</td>
+                            <td>₹{{ record.feed_money }}</td>
+                            <td>{{ record.feed_notes|default:"-" }}</td>
+                            <td>
+                                <a href="/deduction/edit/{{ record.id }}/" class="btn btn-sm btn-warning">✏️</a>
+                                <a href="/deduction/delete/{{ record.id }}/" class="btn btn-sm btn-danger" onclick="return confirm('Delete this deduction?')">🗑️</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6">No records found</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+        <h5>No deductions recorded yet</h5>
+        <p>Producers with advance or feed money will appear here.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

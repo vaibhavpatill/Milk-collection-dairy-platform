@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Edit Producer</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            {% if form.full_name.errors %}
+                                <div class="alert alert-danger">{{ form.full_name.errors }}</div>
+                            {% endif %}
+                            {{ form.full_name }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Producer ID</label>
+                            {% if form.producer_id.errors %}
+                                <div class="alert alert-danger">{{ form.producer_id.errors }}</div>
+                            {% endif %}
+                            {{ form.producer_id }}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Update Producer</button>
+                            <a href="{% url 'producer_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
